@@ -1,0 +1,11 @@
+server:
+  port: 9000
+
+spring:
+  activiti:
+    database-schema-update: true
+  datasource:
+    driver: com.mysql.jdbc.Driver
+    url: jdbc:mysql://local.centos.com:3306/activiti?characterEncoding=utf8
+    username: root
+    password: 123456
