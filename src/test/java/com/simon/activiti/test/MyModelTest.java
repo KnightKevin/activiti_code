@@ -2,6 +2,7 @@ package com.simon.activiti.test;
 
 import com.alibaba.fastjson.JSON;
 import com.simon.activiti.activiti.MyServiceTask;
+import com.simon.activiti.activiti.UserTaskListener;
 import lombok.Data;
 import org.activiti.bpmn.converter.BpmnXMLConverter;
 import org.activiti.bpmn.model.*;
@@ -36,12 +37,16 @@ public class MyModelTest extends ApplicationTest {
 
     private final  static String key = "flowBeta";
 
-    private final List<TaskListener> taskListenerList = new ArrayList<>();
+    private final List<ActivitiListener> taskListenerList = new ArrayList<>();
 
     @Before
-    public void hhh() {
+    public void before() {
         builder = repositoryService.createDeployment();
-        taskListenerList.add(new UserTaskListener());
+        ActivitiListener listener = new ActivitiListener();
+        listener.setEvent(TaskListener.EVENTNAME_CREATE);
+        listener.setImplementation(UserTaskListener.class.getName());
+        listener.setImplementationType("class");
+        taskListenerList.add(listener);
     }
 
     /**
@@ -170,6 +175,7 @@ public class MyModelTest extends ApplicationTest {
         userTask.setName("处理请求");
         userTask.setId("handleRequest");
         userTask.setAssignee("Simon");
+        userTask.setTaskListeners(taskListenerList); // 添加此监听器的目的是为了防止人员变动，比如原来指定的人不在了，可以换成其他人
         process.addFlowElement(userTask);
 
         UserTask userTask1 = new UserTask();
@@ -271,13 +277,4 @@ class FlowBpmnParam {
     private String endEvent   = "endEvent";
     private List<UserTaskParam> userTaskList;
     private List<SequenceFlowParam> sequenceFlowList;
-}
-
-
-class UserTaskListener implements TaskListener {
-    Logger log = LoggerFactory.getLogger(UserTaskListener.class);
-    @Override
-    public void notify(DelegateTask delegateTask) {
-        log.info("事件监听启动了，当前的assignee是"+delegateTask.getAssignee());
-    }
 }

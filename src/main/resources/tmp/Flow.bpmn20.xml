@@ -2,7 +2,11 @@
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:activiti="http://activiti.org/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" typeLanguage="http://www.w3.org/2001/XMLSchema" expressionLanguage="http://www.w3.org/1999/XPath" targetNamespace="http://activiti.org/bpmn20">
   <process id="flowBeta" name="服务目录流程模板 beta1.1" isExecutable="true">
     <startEvent id="startEvent"></startEvent>
-    <userTask id="handleRequest" name="处理请求" activiti:assignee="Simon"></userTask>
+    <userTask id="handleRequest" name="处理请求" activiti:assignee="Simon">
+      <extensionElements>
+        <activiti:taskListener event="create" class="alallkalkjsfalkjsa"></activiti:taskListener>
+      </extensionElements>
+    </userTask>
     <userTask id="handleRequest1" name="处理请求" activiti:assignee="admin"></userTask>
     <serviceTask id="handleServiceTask" name="执行服务任务" activiti:class="cjjlajskfjalksjdfljalskjdflakjsdlf"></serviceTask>
 
