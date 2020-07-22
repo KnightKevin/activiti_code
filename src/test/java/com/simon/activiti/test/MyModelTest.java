@@ -5,18 +5,17 @@ import lombok.Data;
 import org.activiti.bpmn.converter.BpmnXMLConverter;
 import org.activiti.bpmn.model.*;
 import org.activiti.bpmn.model.Process;
+import org.activiti.engine.history.HistoricProcessInstance;
 import org.activiti.engine.repository.DeploymentBuilder;
 import org.activiti.engine.repository.ProcessDefinition;
 import org.activiti.engine.runtime.ProcessInstance;
+import org.activiti.engine.task.Task;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 利用BpmnModel来部署
@@ -27,7 +26,7 @@ public class MyModelTest extends ApplicationTest {
 
     private DeploymentBuilder builder;
 
-    private final  static String key = "MyRequest";
+    private final  static String key = "flowBeta";
 
     @Before
     public void hhh() {
@@ -40,12 +39,32 @@ public class MyModelTest extends ApplicationTest {
      * */
     @Test
     public void deployBpmnModelProcess() {
-        builder.addBpmnModel("MyRequest.bpmn20.xml", createProcessModel())
+        builder.addBpmnModel(key+"bpmn20.xml", createProcessModel())
                 .name("Manual")
                 .key("manual")
                 .enableDuplicateFiltering()
                 .deploy()
         ;
+    }
+
+    @Test
+    public void startProcess() {
+        ProcessInstance instance = runtimeService.startProcessInstanceByKey(key);
+        log.info("process instance id is "+instance.getId());
+    }
+
+    /**
+     * 完成任务case
+     * */
+    @Test
+    public void completeTask() {
+        Task task = taskService.createTaskQuery().active().taskAssignee("Simon").singleResult();
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("isPass", false);
+
+        taskService.complete(task.getId(), map);
+        log.info("task id = "+task);
     }
 
     /**
@@ -54,19 +73,20 @@ public class MyModelTest extends ApplicationTest {
     @Test
     public void getProcessToJson() {
         // 准确来说应该是获取实例所关联的流程定义
-        List<ProcessInstance> instances = runtimeService.createProcessInstanceQuery().processDefinitionKey(key).list();
-        ProcessDefinition processDefinition = null;
+        List<HistoricProcessInstance> instances = historyService.createHistoricProcessInstanceQuery().processDefinitionKey(key).list();
         BpmnModel bpmnModel = null;
+
+        log.info("the size of process instance list is "+instances.size());
 
         List<UserTaskParam> userTaskList = new LinkedList<>();
         List<SequenceFlowParam> sequenceFlowList = new LinkedList<>();
         FlowBpmnParam flowBpmnParam = new FlowBpmnParam();
 
-        for (ProcessInstance instance : instances) {
+        for (HistoricProcessInstance instance : instances) {
             log.info("definitionKey       = "+instance.getProcessDefinitionKey());
             log.info("version             = "+instance.getProcessDefinitionVersion());
             log.info("processDefinitionId = "+instance.getProcessDefinitionId());
-            log.info("deploymentId = "+instance.getDeploymentId());
+            log.info("deploymentId        = "+instance.getDeploymentId());
 
             bpmnModel = repositoryService.getBpmnModel(instance.getProcessDefinitionId());
             Process process = bpmnModel.getProcessById(key);
@@ -94,39 +114,22 @@ public class MyModelTest extends ApplicationTest {
             log.info("######################################################");
         }
 
-
-
-
     }
 
     @Test
-    public void deployProcessByXml() {
-        builder.addClasspathResource("tmp/purchase.bpmn")
-                .name("Manual")
-                .enableDuplicateFiltering().deploy();
-    }
-
-    @Test
-    public void queryProcessDef() {
-        List<ProcessDefinition> list = repositoryService.createProcessDefinitionQuery().list();
-
-        for (ProcessDefinition definition : list) {
-            log.info("lkjasdf " + definition.getName());
-        }
-    }
-
-    @Test
-    public void startProcess() {
-        ProcessInstance instance = runtimeService.startProcessInstanceByKey(key);
-        log.info("process instance id is "+instance.getId());
+    public void bpmnModelToXml() {
+        BpmnXMLConverter converter = new BpmnXMLConverter();
+        byte[] xml = converter.convertToXML(createProcessModel());
+        log.info(new String(xml));
     }
 
     public BpmnModel createProcessModel() {
         BpmnModel model = new BpmnModel();
+        model.setTargetNamespace("http://activiti.org/bpmn20");
 
         Process process = new Process();
         process.setId(key);
-        process.setName("自己的模型对象-hahaha");
+        process.setName("服务目录流程模板 beta1.1");
 
         model.addProcess(process);
 
@@ -142,15 +145,56 @@ public class MyModelTest extends ApplicationTest {
         userTask.setAssignee("Simon");
         process.addFlowElement(userTask);
 
+        UserTask userTask1 = new UserTask();
+        userTask1.setName("处理请求");
+        userTask1.setId("handleRequest1");
+        userTask1.setAssignee("admin");
+        process.addFlowElement(userTask1);
+
+        // exclusive gateway
+        ExclusiveGateway gateway = new ExclusiveGateway();
+        gateway.setId("exclusiveGate1");
+        gateway.setName("第一个单向网关");
+        process.addFlowElement(gateway);
+
+        ExclusiveGateway gateway1 = new ExclusiveGateway();
+        gateway1.setId("exclusiveGate2");
+        gateway1.setName("第二个单向网关");
+        process.addFlowElement(gateway1);
+
         // 结束事件
-        EndEvent endEvent = new EndEvent();
-        endEvent.setId("endEvent");
-        endEvent.setName("endEvent");
-        process.addFlowElement(endEvent);
+        EndEvent passEndEvent = new EndEvent();
+        passEndEvent.setId("passEndEvent");
+        passEndEvent.setName("结束-通过");
+        process.addFlowElement(passEndEvent);
+
+        EndEvent notPassEndEvent = new EndEvent();
+        notPassEndEvent.setId("notPassEndEvent");
+        notPassEndEvent.setName("结束-未通过");
+        process.addFlowElement(notPassEndEvent);
 
         // 添加流程顺序
-        process.addFlowElement(new SequenceFlow("startEvent", "handleRequest"));
-        process.addFlowElement(new SequenceFlow("handleRequest", "endEvent"));
+        process.addFlowElement(new SequenceFlow(startEvent.getId(), userTask.getId()));
+
+        process.addFlowElement(new SequenceFlow(userTask.getId(), gateway.getId()));
+
+        SequenceFlow sequenceFlow = new SequenceFlow(gateway.getId(), notPassEndEvent.getId());
+        sequenceFlow.setConditionExpression("${isPass == 'false'}");
+        process.addFlowElement(sequenceFlow);
+
+        sequenceFlow = new SequenceFlow(gateway.getId(), userTask1.getId());
+        sequenceFlow.setConditionExpression("${isPass == 'true'}");
+        process.addFlowElement(sequenceFlow);
+
+        process.addFlowElement(new SequenceFlow(userTask1.getId(), gateway1.getId()));
+
+        sequenceFlow = new SequenceFlow(gateway1.getId(), notPassEndEvent.getId());
+        sequenceFlow.setConditionExpression("${isPass == 'false'}");
+        process.addFlowElement(sequenceFlow);
+
+        sequenceFlow = new SequenceFlow(gateway1.getId(), passEndEvent.getId());
+        sequenceFlow.setConditionExpression("${isPass == 'true'}");
+        process.addFlowElement(sequenceFlow);
 
         return model;
     }

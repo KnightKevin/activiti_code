@@ -1,9 +1,6 @@
 package com.simon.activiti.test;
 
-import org.activiti.engine.IdentityService;
-import org.activiti.engine.RepositoryService;
-import org.activiti.engine.RuntimeService;
-import org.activiti.engine.TaskService;
+import org.activiti.engine.*;
 import org.activiti.engine.repository.DeploymentBuilder;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,4 +22,7 @@ public class ApplicationTest {
 
     @Autowired
     RepositoryService repositoryService;
+
+    @Autowired
+    HistoryService historyService;
 }
