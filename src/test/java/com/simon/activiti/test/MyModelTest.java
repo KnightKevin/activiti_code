@@ -1,13 +1,15 @@
 package com.simon.activiti.test;
 
 import com.alibaba.fastjson.JSON;
+import com.simon.activiti.activiti.MyServiceTask;
 import lombok.Data;
 import org.activiti.bpmn.converter.BpmnXMLConverter;
 import org.activiti.bpmn.model.*;
 import org.activiti.bpmn.model.Process;
+import org.activiti.engine.delegate.DelegateTask;
+import org.activiti.engine.delegate.TaskListener;
 import org.activiti.engine.history.HistoricProcessInstance;
 import org.activiti.engine.repository.DeploymentBuilder;
-import org.activiti.engine.repository.ProcessDefinition;
 import org.activiti.engine.runtime.ProcessInstance;
 import org.activiti.engine.task.Task;
 import org.junit.Before;
@@ -15,6 +17,12 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.Reader;
 import java.util.*;
 
 /**
@@ -28,9 +36,12 @@ public class MyModelTest extends ApplicationTest {
 
     private final  static String key = "flowBeta";
 
+    private final List<TaskListener> taskListenerList = new ArrayList<>();
+
     @Before
     public void hhh() {
         builder = repositoryService.createDeployment();
+        taskListenerList.add(new UserTaskListener());
     }
 
     /**
@@ -58,10 +69,10 @@ public class MyModelTest extends ApplicationTest {
      * */
     @Test
     public void completeTask() {
-        Task task = taskService.createTaskQuery().active().taskAssignee("Simon").singleResult();
+        Task task = taskService.createTaskQuery().active().taskAssignee("admin").singleResult();
 
         Map<String, Object> map = new HashMap<>();
-        map.put("isPass", false);
+        map.put("isPass", true);
 
         taskService.complete(task.getId(), map);
         log.info("task id = "+task);
@@ -73,7 +84,9 @@ public class MyModelTest extends ApplicationTest {
     @Test
     public void getProcessToJson() {
         // 准确来说应该是获取实例所关联的流程定义
-        List<HistoricProcessInstance> instances = historyService.createHistoricProcessInstanceQuery().processDefinitionKey(key).list();
+        List<HistoricProcessInstance> instances = historyService.createHistoricProcessInstanceQuery()
+                .processDefinitionKey(key)
+                .list();
         BpmnModel bpmnModel = null;
 
         log.info("the size of process instance list is "+instances.size());
@@ -123,6 +136,20 @@ public class MyModelTest extends ApplicationTest {
         log.info(new String(xml));
     }
 
+    @Test
+    public void xmlToBpmn() throws FileNotFoundException, XMLStreamException {
+        // xml文件读取
+        XMLInputFactory inputFactory = XMLInputFactory.newInstance();
+        Reader reader = new FileReader("D:\\work_space\\activiti-code\\src\\main\\resources\\tmp\\Flow.bpmn20.xml");
+
+        XMLStreamReader xmlStreamReader = inputFactory.createXMLStreamReader(reader);
+
+        BpmnXMLConverter converter = new BpmnXMLConverter();
+        BpmnModel model = converter.convertToBpmnModel(xmlStreamReader);
+
+        List<Process> list = model.getProcesses();
+    }
+
     public BpmnModel createProcessModel() {
         BpmnModel model = new BpmnModel();
         model.setTargetNamespace("http://activiti.org/bpmn20");
@@ -150,6 +177,20 @@ public class MyModelTest extends ApplicationTest {
         userTask1.setId("handleRequest1");
         userTask1.setAssignee("admin");
         process.addFlowElement(userTask1);
+
+        // service task
+        ServiceTask serviceTask = new ServiceTask();
+        serviceTask.setId("handleServiceTask");
+        serviceTask.setName("执行服务任务");
+        serviceTask.setImplementation(MyServiceTask.class.getName());
+        serviceTask.setImplementationType("class");
+        process.addFlowElement(serviceTask);
+
+        // 设置一个边界事件来捕获service task的错误，并记下日志
+//        BoundaryEvent boundaryEvent = new BoundaryEvent();
+//        boundaryEvent.setAttachedToRefId(serviceTask.getExtensionId());
+//        boundaryEvent.setCancelActivity(false);
+//        boundaryEvent.addEventDefinition(new ErrorEventDefinition());
 
         // exclusive gateway
         ExclusiveGateway gateway = new ExclusiveGateway();
@@ -192,9 +233,11 @@ public class MyModelTest extends ApplicationTest {
         sequenceFlow.setConditionExpression("${isPass == 'false'}");
         process.addFlowElement(sequenceFlow);
 
-        sequenceFlow = new SequenceFlow(gateway1.getId(), passEndEvent.getId());
+        sequenceFlow = new SequenceFlow(gateway1.getId(), serviceTask.getId());
         sequenceFlow.setConditionExpression("${isPass == 'true'}");
         process.addFlowElement(sequenceFlow);
+
+        process.addFlowElement(new SequenceFlow(serviceTask.getId(), passEndEvent.getId()));
 
         return model;
     }
@@ -228,4 +271,13 @@ class FlowBpmnParam {
     private String endEvent   = "endEvent";
     private List<UserTaskParam> userTaskList;
     private List<SequenceFlowParam> sequenceFlowList;
+}
+
+
+class UserTaskListener implements TaskListener {
+    Logger log = LoggerFactory.getLogger(UserTaskListener.class);
+    @Override
+    public void notify(DelegateTask delegateTask) {
+        log.info("事件监听启动了，当前的assignee是"+delegateTask.getAssignee());
+    }
 }
