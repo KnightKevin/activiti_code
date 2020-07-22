@@ -7,7 +7,6 @@ import lombok.Data;
 import org.activiti.bpmn.converter.BpmnXMLConverter;
 import org.activiti.bpmn.model.*;
 import org.activiti.bpmn.model.Process;
-import org.activiti.engine.delegate.DelegateTask;
 import org.activiti.engine.delegate.TaskListener;
 import org.activiti.engine.history.HistoricProcessInstance;
 import org.activiti.engine.repository.DeploymentBuilder;
@@ -31,7 +30,7 @@ import java.util.*;
  * */
 public class MyModelTest extends ApplicationTest {
 
-    private Logger log = LoggerFactory.getLogger(VacationTest.class);
+    private Logger log = LoggerFactory.getLogger(MyModelTest.class);
 
     private DeploymentBuilder builder;
 
