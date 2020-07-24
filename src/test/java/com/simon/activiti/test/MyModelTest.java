@@ -1,8 +1,7 @@
 package com.simon.activiti.test;
 
 import com.alibaba.fastjson.JSON;
-import com.simon.activiti.activiti.MyServiceTask;
-import com.simon.activiti.activiti.UserTaskListener;
+import com.simon.activiti.activiti.*;
 import lombok.Data;
 import org.activiti.bpmn.converter.BpmnXMLConverter;
 import org.activiti.bpmn.model.*;
@@ -95,9 +94,9 @@ public class MyModelTest extends ApplicationTest {
 
         log.info("the size of process instance list is "+instances.size());
 
-        List<UserTaskParam> userTaskList = new LinkedList<>();
-        List<SequenceFlowParam> sequenceFlowList = new LinkedList<>();
         FlowBpmnParam flowBpmnParam = new FlowBpmnParam();
+
+        List<Node> nodeList = new ArrayList<>();
 
         for (HistoricProcessInstance instance : instances) {
             log.info("definitionKey       = "+instance.getProcessDefinitionKey());
@@ -111,21 +110,26 @@ public class MyModelTest extends ApplicationTest {
             Collection<FlowElement> list = process.getFlowElements();
             log.info("the size of map is "+list.size());
 
-            userTaskList.clear();
-            sequenceFlowList.clear();
 
             for (FlowElement element : list) {
                 if (element instanceof UserTask) {
-                    userTaskList.add(new UserTaskParam(element.getId(), ((UserTask) element).getAssignee()));
+                    UserTaskNode userTaskNode = new UserTaskNode();
+                    userTaskNode.setType("UserTask");
+                    userTaskNode.setId(element.getId());
+                    userTaskNode.setAssignee(((UserTask) element).getAssignee());
+                    nodeList.add(userTaskNode);
                 }
 
                 if (element instanceof SequenceFlow) {
-                    sequenceFlowList.add(new SequenceFlowParam(((SequenceFlow) element).getSourceRef(), ((SequenceFlow) element).getTargetRef()));
+                    SequenceFlowNode node = new SequenceFlowNode();
+                    node.setType("SequenceFlow");
+                    node.setSource(((SequenceFlow) element).getSourceRef());
+                    node.setTarget(((SequenceFlow) element).getTargetRef());
+                    nodeList.add(node);
                 }
             }
 
-            flowBpmnParam.setUserTaskList(userTaskList);
-            flowBpmnParam.setSequenceFlowList(sequenceFlowList);
+            flowBpmnParam.setList(nodeList);
 
             log.info(JSON.toJSONString(flowBpmnParam));
             log.info("######################################################");
@@ -250,30 +254,10 @@ public class MyModelTest extends ApplicationTest {
 }
 
 // 定义几个实体
-@Data
-class UserTaskParam {
-    private String id;
-    private String assignee ="";
-    public UserTaskParam(String id, String assignee) {
-        this.id = id;
-        this.assignee = assignee;
-    }
-}
-
-@Data
-class SequenceFlowParam {
-    private String source;
-    private String target;
-    public SequenceFlowParam(String source, String target) {
-        this.source = source;
-        this.target = target;
-    }
-}
 
 @Data
 class FlowBpmnParam {
     private String startEvent = "startEvent";
     private String endEvent   = "endEvent";
-    private List<UserTaskParam> userTaskList;
-    private List<SequenceFlowParam> sequenceFlowList;
+    private List<Node> list;
 }
