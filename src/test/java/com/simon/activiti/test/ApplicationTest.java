@@ -1,7 +1,6 @@
 package com.simon.activiti.test;
 
 import org.activiti.engine.*;
-import org.activiti.engine.repository.DeploymentBuilder;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

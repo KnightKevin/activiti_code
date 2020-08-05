@@ -4,7 +4,7 @@ server:
 spring:
   activiti:
     database-schema-update: true
-    history-level: full
+    history-level: audit
   datasource:
     driver: com.mysql.jdbc.Driver
     url: jdbc:mysql://local.centos.com:3306/activiti?characterEncoding=utf8&nullCatalogMeansCurrent=true

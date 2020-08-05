@@ -63,6 +63,7 @@ public class MyModelTest extends ApplicationTest {
 
     @Test
     public void startProcess() {
+        identityService.setAuthenticatedUserId("admin");
         ProcessInstance instance = runtimeService.startProcessInstanceByKey(key);
         log.info("process instance id is "+instance.getId());
     }
@@ -72,13 +73,13 @@ public class MyModelTest extends ApplicationTest {
      * */
     @Test
     public void completeTask() {
-        Task task = taskService.createTaskQuery().active().taskAssignee("admin").singleResult();
 
         Map<String, Object> map = new HashMap<>();
         map.put("isPass", true);
 
-        taskService.complete(task.getId(), map);
-        log.info("task id = "+task);
+        String taskId = "15009";
+        taskService.complete(taskId, map);
+        log.info("task id = "+taskId);
     }
 
     /**

@@ -4,11 +4,11 @@
     <startEvent id="startEvent"></startEvent>
     <userTask id="handleRequest" name="处理请求" activiti:assignee="Simon">
       <extensionElements>
-        <activiti:taskListener event="create" class="alallkalkjsfalkjsa"></activiti:taskListener>
+        <activiti:taskListener event="create" class="com.simon.activiti.activiti.UserTaskListener"></activiti:taskListener>
       </extensionElements>
     </userTask>
-    <userTask id="handleRequest1" name="处理请求" activiti:assignee="admin"></userTask>
-    <serviceTask id="handleServiceTask" name="执行服务任务" activiti:class="cjjlajskfjalksjdfljalskjdflakjsdlf"></serviceTask>
+    <userTask id="handleRequest1" name="处理请求" activiti:assignee="Simon"></userTask>
+    <serviceTask id="handleServiceTask" name="执行服务任务" activiti:class="com.simon.activiti.activiti.MyServiceTask"></serviceTask>
 
 
     <boundaryEvent id="errorBoundaryEvent" attachedToRef="handleServiceTask" name="错误边界事件" cancelActivity="false">
@@ -37,7 +37,4 @@
     </sequenceFlow>
     <sequenceFlow sourceRef="handleServiceTask" targetRef="passEndEvent"></sequenceFlow>
   </process>
-  <bpmndi:BPMNDiagram id="BPMNDiagram_flowBeta">
-    <bpmndi:BPMNPlane bpmnElement="flowBeta" id="BPMNPlane_flowBeta"></bpmndi:BPMNPlane>
-  </bpmndi:BPMNDiagram>
 </definitions>
